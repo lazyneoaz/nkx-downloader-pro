@@ -3,30 +3,56 @@ const asyncHandler = require('../utils/asyncHandler');
 
 /**
  * Maps a route "platform" segment to the corresponding btch-downloader
- * export. Centralizing this makes it easy to add/remove platforms without
- * touching the route wiring below.
+ * export. This must match the package's actual exports — verify with:
+ *   node -e "console.log(Object.keys(require('btch-downloader')))"
+ * after `npm install`, since third-party scraper packages like this one
+ * rename/add/drop platform functions between versions without much notice.
  *
- * If a new version of btch-downloader renames or adds functions, update
- * this map to match — check `node -e "console.log(Object.keys(require('btch-downloader')))"`
- * after installing to see exactly what's available.
+ * Current (as of writing) btch-downloader exports 17 functions:
+ *   Social:  igdl, ttdl, fbdown, twitter, douyin, xiaohongshu, snackvideo, cocofun
+ *   Video:   youtube, capcut, pinterest, aio
+ *   Audio:   spotify, soundcloud, yts (yts = search, not a downloader)
+ *   Storage: mediafire, gdrive
+ *
+ * Note: there is no dedicated ytmp3/ytmp4 — YouTube downloads go through
+ * `youtube(url)`. `yts` is a *search* function that overlaps with our
+ * yt-search-based /api/search/youtube route, so it's intentionally left
+ * out of the download map below.
  */
 const PLATFORM_HANDLERS = {
   tiktok: btch.ttdl,
   instagram: btch.igdl,
   facebook: btch.fbdown,
   twitter: btch.twitter,
-  capcut: btch.capcut,
-  gdrive: btch.gdrive,
-  mediafire: btch.mediafire,
-  pinterest: btch.pinterest,
-  sfilemobi: btch.sfilemobi,
-  soundcloud: btch.soundcloud,
-  ytmp3: btch.ytmp3,
-  ytmp4: btch.ytmp4,
-  likee: btch.likee,
+  douyin: btch.douyin,
+  xiaohongshu: btch.xiaohongshu,
   snackvideo: btch.snackvideo,
+  cocofun: btch.cocofun,
+  youtube: btch.youtube,
+  capcut: btch.capcut,
+  pinterest: btch.pinterest,
+  spotify: btch.spotify,
+  soundcloud: btch.soundcloud,
+  mediafire: btch.mediafire,
+  gdrive: btch.gdrive,
   aio: btch.aio,
 };
+
+/**
+ * btch-downloader is a thin client that forwards every call to a remote
+ * backend service (it does not scrape locally). That means a "successful"
+ * promise resolution can still carry a failure inside the payload, e.g.
+ * { status: false, error: "Invalid search API response" }. We treat that
+ * as a failed request rather than silently reporting success: true.
+ */
+function normalize(result) {
+  if (result && typeof result === 'object' && !Array.isArray(result)) {
+    const failed = result.status === false || typeof result.error === 'string';
+    return { failed, payload: result };
+  }
+  // Arrays (e.g. igdl carousel results) or primitives are treated as success.
+  return { failed: false, payload: result };
+}
 
 /**
  * Generic handler factory: GET /api/download/:platform?url=<link>
@@ -54,11 +80,24 @@ function makeHandler(platformKey) {
     }
 
     const result = await fn(url);
+    const { failed, payload } = normalize(result);
+
+    if (failed) {
+      // The remote backend reached us fine but reported it couldn't fulfil
+      // the request — most often an unsupported/malformed URL, the media
+      // being private/deleted, or the backend having a transient issue.
+      return res.status(502).json({
+        success: false,
+        platform: platformKey,
+        message: 'The download backend rejected or failed this request.',
+        upstream: payload,
+      });
+    }
 
     return res.json({
       success: true,
       platform: platformKey,
-      data: result,
+      data: payload,
     });
   });
 }
@@ -92,11 +131,21 @@ const dynamic = asyncHandler(async (req, res) => {
   }
 
   const result = await fn(url);
+  const { failed, payload } = normalize(result);
+
+  if (failed) {
+    return res.status(502).json({
+      success: false,
+      platform,
+      message: 'The download backend rejected or failed this request.',
+      upstream: payload,
+    });
+  }
 
   return res.json({
     success: true,
     platform,
-    data: result,
+    data: payload,
   });
 });
 
