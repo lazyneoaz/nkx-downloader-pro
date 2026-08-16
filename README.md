@@ -55,23 +55,36 @@ npm start        # plain node
   - `GET /api/download/instagram`
   - `GET /api/download/facebook`
   - `GET /api/download/twitter`
-  - `GET /api/download/capcut`
-  - `GET /api/download/gdrive`
-  - `GET /api/download/mediafire`
-  - `GET /api/download/pinterest`
-  - `GET /api/download/sfilemobi`
-  - `GET /api/download/soundcloud`
-  - `GET /api/download/ytmp3`
-  - `GET /api/download/ytmp4`
-  - `GET /api/download/likee`
+  - `GET /api/download/douyin`
+  - `GET /api/download/xiaohongshu`
   - `GET /api/download/snackvideo`
-  - `GET /api/download/aio` (all-in-one auto-detect)
+  - `GET /api/download/cocofun`
+  - `GET /api/download/youtube`
+  - `GET /api/download/capcut`
+  - `GET /api/download/pinterest` (accepts a URL or a plain search query)
+  - `GET /api/download/spotify`
+  - `GET /api/download/soundcloud`
+  - `GET /api/download/mediafire`
+  - `GET /api/download/gdrive`
+  - `GET /api/download/aio` (all-in-one, auto-detects platform from the URL)
 
 Example:
 
 ```bash
-curl "http://localhost:3000/api/download/tiktok?url=https://vt.tiktok.com/xxxxx"
+curl "http://localhost:3000/api/download/tiktok?url=https://www.tiktok.com/@user/video/7025456384175017243"
+curl "http://localhost:3000/api/download/youtube?url=https://youtube.com/watch?v=C8mJ8943X80"
 ```
+
+**Important:** `btch-downloader` does not scrape locally — every call is
+forwarded to a third-party backend service. A resolved promise can still
+carry a failure inside its payload (e.g. `{ status: false, error: "..." }`),
+so this API inspects that payload and responds with **HTTP 502** and
+`success: false` when the backend itself reports a failure, instead of
+masking it as a 200. Common causes: the URL doesn't match the pattern the
+backend expects for that platform, the media is private/deleted/geo-blocked,
+or the backend is having a transient issue (it's an external free service,
+not something this API controls) — retry, or try a different `platform`
+endpoint or URL.
 
 > `btch-downloader` is pinned to `latest` in `package.json`. If a future
 > release renames or removes an export, update the `PLATFORM_HANDLERS` map
