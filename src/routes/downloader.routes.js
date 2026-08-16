@@ -17,16 +17,17 @@ router.get('/tiktok', handlers.tiktok);
 router.get('/instagram', handlers.instagram);
 router.get('/facebook', handlers.facebook);
 router.get('/twitter', handlers.twitter);
-router.get('/capcut', handlers.capcut);
-router.get('/gdrive', handlers.gdrive);
-router.get('/mediafire', handlers.mediafire);
-router.get('/pinterest', handlers.pinterest);
-router.get('/sfilemobi', handlers.sfilemobi);
-router.get('/soundcloud', handlers.soundcloud);
-router.get('/ytmp3', handlers.ytmp3);
-router.get('/ytmp4', handlers.ytmp4);
-router.get('/likee', handlers.likee);
+router.get('/douyin', handlers.douyin);
+router.get('/xiaohongshu', handlers.xiaohongshu);
 router.get('/snackvideo', handlers.snackvideo);
+router.get('/cocofun', handlers.cocofun);
+router.get('/youtube', handlers.youtube);
+router.get('/capcut', handlers.capcut);
+router.get('/pinterest', handlers.pinterest);
+router.get('/spotify', handlers.spotify);
+router.get('/soundcloud', handlers.soundcloud);
+router.get('/mediafire', handlers.mediafire);
+router.get('/gdrive', handlers.gdrive);
 router.get('/aio', handlers.aio);
 
 // Dynamic fallback for any platform key not explicitly listed above:
